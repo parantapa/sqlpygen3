@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 import click
 from lsprotocol.types import (
@@ -17,11 +17,26 @@ from lsprotocol.types import (
 )
 from pygls.server import LanguageServer
 
+from sqlpygen.errors import Error
+
 from .tree_sitter_bindings import get_parser, Parser
-from .parse_tree import collect_errors
+from .parse_tree import collect_errors as collect_parse_errors
+from .ast import Source, make_ast, collect_errors as collect_ast_errors
 
 server = LanguageServer("sqlpygen-server", "v0.1")
 parser: Optional[Parser] = None
+
+
+def error_to_diagnostic(error: Error) -> Diagnostic:
+    return Diagnostic(
+        range=Range(
+            start=Position(error.node.start_point[0], error.node.start_point[1]),
+            end=Position(error.node.end_point[0], error.node.end_point[1]),
+        ),
+        severity=DiagnosticSeverity.Error,
+        message=f"{error.type.value}: {error.explanation}",
+        source="sqlpygen-server",
+    )
 
 
 @server.feature(TEXT_DOCUMENT_DID_OPEN)
@@ -39,29 +54,22 @@ async def did_open(
 
     # In case of errors publish diagnostics
     if parse_tree.root_node.has_error:
-        errors = collect_errors(parse_tree.root_node)
-
-        diagnostics = []
-        for error in errors:
-            diagnostics.append(
-                Diagnostic(
-                    range=Range(
-                        start=Position(
-                            error.node.start_point[0], error.node.start_point[1]
-                        ),
-                        end=Position(error.node.end_point[0], error.node.end_point[1]),
-                    ),
-                    severity=DiagnosticSeverity.Error,
-                    message=f"{error.type.value}: {error.explanation}",
-                    source="sqlpygen-server",
-                )
-            )
-
-        # Send diagnostics
+        errors = collect_parse_errors(parse_tree.root_node)
+        diagnostics = [error_to_diagnostic(e) for e in errors]
         ls.publish_diagnostics(params.text_document.uri, diagnostics)
-    else:
-        # Remove diagnostics
-        ls.publish_diagnostics(params.text_document.uri, [])
+        return
+
+    source = make_ast(parse_tree.root_node)
+    source = cast(Source, source)
+    errors = collect_ast_errors(source)
+    if errors:
+        errors = collect_ast_errors(source)
+        diagnostics = [error_to_diagnostic(e) for e in errors]
+        ls.publish_diagnostics(params.text_document.uri, diagnostics)
+        return
+
+    # Remove diagnostics
+    ls.publish_diagnostics(params.text_document.uri, [])
 
 
 @click.command()

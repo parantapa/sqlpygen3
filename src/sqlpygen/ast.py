@@ -2,6 +2,7 @@
 
 from typing import Any
 from pathlib import Path
+from collections import Counter
 
 import rich
 import attrs
@@ -9,6 +10,7 @@ import click
 from tree_sitter import Node
 
 from .parse_tree import get_parser, make_rich_tree
+from .errors import ErrorType, Error
 
 
 @attrs.define
@@ -21,6 +23,14 @@ class CodeStr:
 
     def __hash__(self):
         return hash(self.s)
+
+    def __eq__(self, other):
+        if isinstance(other, CodeStr):
+            return self.s == other.s
+        elif isinstance(other, str):
+            return self.s == other
+        else:
+            raise TypeError("Invalid type for other")
 
 
 @attrs.define
@@ -144,6 +154,55 @@ def make_ast(node: Node) -> Any:
                 return None
     except Exception:
         raise ASTConstructionError(node, children)
+
+
+def collect_errors(source: Source) -> list[Error]:
+    """Check AST for errors."""
+    errors = []
+
+    # Check for duplicate schema names
+    schema_names = Counter(s.name for s in source.schemas)
+    for name, count in schema_names.items():
+        if count > 1:
+            for s in source.schemas:
+                if s.name == name:
+                    errors.append(
+                        Error(
+                            type=ErrorType.DuplicateSchema,
+                            explanation=f"Schema {name} is multiply defined",
+                            node=s.node,
+                        )
+                    )
+
+    # Check for duplicate query names
+    query_names = Counter(s.name for s in source.queries)
+    for name, count in query_names.items():
+        if count > 1:
+            for s in source.queries:
+                if s.name == name:
+                    errors.append(
+                        Error(
+                            type=ErrorType.DuplicateQuery,
+                            explanation=f"Query {name} is multiply defined",
+                            node=s.node,
+                        )
+                    )
+
+    # Check for duplicate table names
+    table_names = Counter(s.name for s in source.tables)
+    for name, count in table_names.items():
+        if count > 1:
+            for s in source.tables:
+                if s.name == name:
+                    errors.append(
+                        Error(
+                            type=ErrorType.DuplicateTable,
+                            explanation=f"Table {name} is multiply defined",
+                            node=s.node,
+                        )
+                    )
+
+    return errors
 
 
 @click.command()

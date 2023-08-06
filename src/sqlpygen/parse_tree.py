@@ -1,28 +1,15 @@
 """Parse using tree sitter."""
 
-from enum import Enum
 from pathlib import Path
 
 import click
-import attrs
 from tree_sitter import Node
 
 import rich
 from rich.tree import Tree
 
 from .tree_sitter_bindings import get_parser
-
-
-class ErrorType(Enum):
-    ParseError = "Failed to parse"
-    MissingToken = "Missing token"
-
-
-@attrs.define
-class Error:
-    type: ErrorType
-    explanation: str
-    node: Node
+from .errors import ErrorType, Error
 
 
 def collect_errors(node: Node, errors: list[Error] | None = None) -> list[Error]:
@@ -42,40 +29,6 @@ def collect_errors(node: Node, errors: list[Error] | None = None) -> list[Error]
             collect_errors(child, errors)
 
     return errors
-
-
-def print_errors(node: Node, file_bytes: bytes, file_path: Path):
-    errors = collect_errors(node)
-
-    for error in errors:
-        rich.print(
-            f"[yellow]{error.type.value}[/yellow]: {str(file_path)}:{error.node.start_point[0]+1}:{error.node.start_point[1]+1}: {error.explanation}"
-        )
-
-        match error.type:
-            case ErrorType.ParseError:
-                error_part = file_bytes[
-                    error.node.start_byte : error.node.end_byte
-                ].decode()
-                print(error_part)
-                print("")
-
-
-@click.command()
-@click.argument(
-    "filename",
-    type=click.Path(exists=True, file_okay=True, dir_okay=False, path_type=Path),
-)
-def check_for_errors(filename: Path):
-    """Check for errors."""
-
-    file_bytes = filename.read_bytes()
-
-    parser = get_parser()
-    parse_tree = parser.parse(file_bytes)
-    if parse_tree.root_node.has_error:
-        rich.print("[red]Error parsing file.[/red]")
-        print_errors(parse_tree.root_node, file_bytes, filename)
 
 
 def node_rich_text(node: Node) -> str:
