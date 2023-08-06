@@ -1,0 +1,23 @@
+============
+Schema Lower
+============
+
+module example1
+
+schema table_stocks
+create table stocks (
+    date text,
+    trans text,
+    symbol text,
+    qty real,
+    price real
+) ;
+
+
+---
+
+(source_file
+    (module_stmt (identifier))
+    (schema_fn (identifier) (schema_sql))
+)
+

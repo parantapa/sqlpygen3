@@ -1,0 +1,43 @@
+===========================
+Query returning named table
+===========================
+
+module example1
+
+schema table_stocks
+CREATE TABLE stocks (
+    date text,
+    trans text,
+    symbol text,
+    qty real,
+    price real
+) ;
+
+table Stock (date: str, trans: str, symbol: str, qty: float, price: float)
+
+query select_from_stocks() -> Stock
+SELECT * FROM stocks ;
+
+---
+
+(source_file
+    (module_stmt (identifier))
+    (schema_fn (identifier) (schema_sql))
+    (table
+        (identifier) 
+        (fields
+            (field (identifier) (nullable_type (identifier)))
+            (field (identifier) (nullable_type (identifier)))
+            (field (identifier) (nullable_type (identifier)))
+            (field (identifier) (nullable_type (identifier)))
+            (field (identifier) (nullable_type (identifier)))
+        )
+    )
+    (query_fn
+        (identifier)
+        (fields)
+        (return_ (named_table (identifier)))
+        (query_sql)
+    )
+)
+

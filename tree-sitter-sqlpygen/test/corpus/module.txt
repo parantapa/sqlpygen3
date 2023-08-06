@@ -1,0 +1,12 @@
+===========
+Just Module
+===========
+
+module example1
+
+---
+
+(source_file
+    (module_stmt (identifier))
+)
+

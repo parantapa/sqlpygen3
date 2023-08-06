@@ -1,0 +1,25 @@
+{
+  "name": "tree-sitter-sqlpygen",
+  "version": "1.0.0",
+  "description": "Tree sitter parser for SQLPyGen",
+  "main": "bindings/node",
+  "scripts": {
+    "test": "tree-sitter test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/parantapa/tree-sitter-sqlpygen.git"
+  },
+  "author": "Parantapa Bhattacharya <pb@parantapa.net>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/parantapa/tree-sitter-sqlpygen/issues"
+  },
+  "homepage": "https://github.com/parantapa/tree-sitter-sqlpygen#readme",
+  "dependencies": {
+    "nan": "^2.17.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.20.8"
+  }
+}

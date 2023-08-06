@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sqlpygen"
+version = "3.0"
+authors = [
+  { name="Parantapa Bhattacharya", email="pb@parantapa.net" },
+]
+description = "Generate type annotated Python code from annotated SQL"
+readme = "README.rst"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "click",
+    "rich",
+    "tree_sitter",
+    "pygls",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+"Homepage" = "http://github.com/parantapa/sqlpygen3"
+
+[project.scripts]
+sqlpygen = "sqlpygen.cli:cli"
