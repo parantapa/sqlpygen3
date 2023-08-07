@@ -9,26 +9,17 @@ import rich
 from rich.tree import Tree
 
 from .tree_sitter_bindings import get_parser
-from .errors import ErrorType, Error
+from .errors import ErrorType, append_error
 
 
-def collect_errors(node: Node, errors: list[Error] | None = None) -> list[Error]:
-    if errors is None:
-        errors = []
-
+def check_parse_errors(node: Node):
     if node.type == "ERROR":
-        errors.append(
-            Error(type=ErrorType.ParseError, explanation=node.sexp(), node=node)
-        )
+        append_error(type=ErrorType.ParseError, explanation=node.sexp(), node=node)
     elif node.is_missing:
-        errors.append(
-            Error(type=ErrorType.MissingToken, explanation=node.type, node=node)
-        )
+        append_error(type=ErrorType.MissingToken, explanation=node.type, node=node)
     elif node.has_error:
         for child in node.children:
-            collect_errors(child, errors)
-
-    return errors
+            check_parse_errors(child)
 
 
 def node_rich_text(node: Node) -> str:

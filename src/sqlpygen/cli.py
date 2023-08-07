@@ -1,19 +1,18 @@
 """Command line interface."""
 
 from pathlib import Path
-from typing import cast
 
 import rich
 import click
 
 from .parse_tree import print_parse_tree
-from .ast import print_ast
+from .ast import print_initial_ast, print_final_ast
 from .language_server import language_server
 
 from .tree_sitter_bindings import get_parser
-from .parse_tree import collect_errors as collect_parse_errors
-from .ast import Source, make_ast, collect_errors as collect_ast_errors
-from .errors import print_errors
+from .parse_tree import check_parse_errors
+from .ast import make_ast
+from .errors import print_errors, capture_errors
 
 
 @click.group()
@@ -22,7 +21,8 @@ def cli():
 
 
 cli.add_command(print_parse_tree)
-cli.add_command(print_ast)
+cli.add_command(print_initial_ast)
+cli.add_command(print_final_ast)
 cli.add_command(language_server)
 
 
@@ -39,14 +39,17 @@ def check_for_errors(filename: Path):
     parser = get_parser()
     parse_tree = parser.parse(file_bytes)
     if parse_tree.root_node.has_error:
-        rich.print("[red]Error parsing file.[/red]")
-        errors = collect_parse_errors(parse_tree.root_node)
-        print_errors(errors, file_bytes, filename)
-        return
+        with capture_errors() as errors:
+            check_parse_errors(parse_tree.root_node)
 
-    source = make_ast(parse_tree.root_node)
-    source = cast(Source, source)
-    errors = collect_ast_errors(source)
-    if errors:
-        print_errors(errors, file_bytes, filename)
-        return
+            rich.print("[red]Error parsing file.[/red]")
+            print_errors(errors, file_bytes, filename)
+            return
+
+    with capture_errors() as errors:
+        make_ast(parse_tree.root_node)
+
+        if errors:
+            rich.print("[red]Error parsing file.[/red]")
+            print_errors(errors, file_bytes, filename)
+            return

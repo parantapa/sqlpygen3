@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Optional, cast
 
 import click
 from lsprotocol.types import (
@@ -20,11 +19,12 @@ from pygls.server import LanguageServer
 from sqlpygen.errors import Error
 
 from .tree_sitter_bindings import get_parser, Parser
-from .parse_tree import collect_errors as collect_parse_errors
-from .ast import Source, make_ast, collect_errors as collect_ast_errors
+from .parse_tree import check_parse_errors
+from .ast import make_ast
+from .errors import Error, capture_errors
 
 server = LanguageServer("sqlpygen-server", "v0.1")
-parser: Optional[Parser] = None
+parser: Parser | None = None
 
 
 def error_to_diagnostic(error: Error) -> Diagnostic:
@@ -54,22 +54,17 @@ async def did_open(
 
     # In case of errors publish diagnostics
     if parse_tree.root_node.has_error:
-        errors = collect_parse_errors(parse_tree.root_node)
+        with capture_errors() as errors:
+            check_parse_errors(parse_tree.root_node)
+            diagnostics = [error_to_diagnostic(e) for e in errors]
+            ls.publish_diagnostics(params.text_document.uri, diagnostics)
+            return
+
+    with capture_errors() as errors:
+        make_ast(parse_tree.root_node)
         diagnostics = [error_to_diagnostic(e) for e in errors]
         ls.publish_diagnostics(params.text_document.uri, diagnostics)
         return
-
-    source = make_ast(parse_tree.root_node)
-    source = cast(Source, source)
-    errors = collect_ast_errors(source)
-    if errors:
-        errors = collect_ast_errors(source)
-        diagnostics = [error_to_diagnostic(e) for e in errors]
-        ls.publish_diagnostics(params.text_document.uri, diagnostics)
-        return
-
-    # Remove diagnostics
-    ls.publish_diagnostics(params.text_document.uri, [])
 
 
 @click.command()
