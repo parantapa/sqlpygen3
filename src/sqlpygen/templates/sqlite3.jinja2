@@ -26,7 +26,7 @@ SCHEMA["{{ schema.name }}"] = """
 QUERY = {}
 {% for query in queries %}
 QUERY["{{ query.name }}"] = """
-{{ query.sql | sqlite3_param }}
+{{ query.sql | parameterized_query }}
 """
 
 {% endfor %}
@@ -66,7 +66,7 @@ def create_schema(connection: ConnectionType) -> None:
 
         connection.execute(sql)
     except Exception as e:
-        raise RuntimeError("Error executing schema: {{ schema.name }}") from e
+        raise RuntimeError(f"Error executing schema: {{ schema.name }}: {e}") from e
     {% endfor %}
 
 {% macro query_params(params) %}
@@ -94,7 +94,7 @@ def {{ query.name }}(connection: ConnectionType, {{ query_params(query.params) }
         return {{ query.return_ }}(cursor)
         {% endif %}
     except Exception as e:
-        raise RuntimeError("Error executing query: {{ query.name }}") from e
+        raise RuntimeError(f"Error executing query: {{ query.name }}: {e}") from e
 
 {% endfor %}
 
@@ -119,6 +119,6 @@ def explain_queries() -> None:
                 cursor.execute(sql, query_args)
                 print("Query {{ query.name }} is syntactically valid.")
             except Exception as e:
-                raise RuntimeError("Error executing query plan: {{ query.name }}") from e
+                raise RuntimeError(f"Error executing query plan: {{ query.name }}: {e}") from e
 
             {% endfor %}
