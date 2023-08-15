@@ -330,6 +330,10 @@ class ConcreteSource:
     tables: list[Table]
     node: Node
 
+    schemas_dict: dict[str, SchemaFn]
+    queries_dict: dict[str, ConcreteQueryFn]
+    tables_dict: dict[str, Table]
+
 
 def make_concrete_source(source: Source) -> ConcreteSource:
     tables = list(source.tables)
@@ -340,12 +344,19 @@ def make_concrete_source(source: Source) -> ConcreteSource:
         if new_table is not None:
             tables.append(new_table)
 
+    schemas_dict = {s.name.text: s for s in source.schemas}
+    queries_dict = {q.name.text: q for q in queries}
+    tables_dict = {t.name.text: t for t in tables}
+
     return ConcreteSource(
         module=source.module,
         schemas=source.schemas,
         queries=queries,
         tables=tables,
         node=source.node,
+        schemas_dict=schemas_dict,
+        queries_dict=queries_dict,
+        tables_dict=tables_dict,
     )
 
 

@@ -97,28 +97,3 @@ def {{ query.name }}(connection: ConnectionType, {{ query_params(query.params) }
         raise RuntimeError(f"Error executing query: {{ query.name }}: {e}") from e
 
 {% endfor %}
-
-{% macro explain_args(params) %}
-dict({% for field in params %}{{ field.name }}=None, {% endfor %})
-{% endmacro %}
-
-def explain_queries() -> None:
-    connection = sqlite3.connect(":memory:")
-    create_schema(connection)
-
-    with connection:
-        cursor = connection.cursor()
-        with closing(cursor):
-
-            {% for query in queries %}
-            try:
-                sql = QUERY["{{ query.name }}"]
-                sql = "EXPLAIN " + sql
-                query_args = {{ explain_args(query.params) }}
-
-                cursor.execute(sql, query_args)
-                print("Query {{ query.name }} is syntactically valid.")
-            except Exception as e:
-                raise RuntimeError(f"Error executing query plan: {{ query.name }}: {e}") from e
-
-            {% endfor %}

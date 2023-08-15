@@ -26,6 +26,9 @@ class ErrorType(Enum):
 
     UnexpectedType = "UnexpetedType"
 
+    BadSQLSchema = "Bad SQL Schema"
+    BadSQLQuery = "Bad SQL Query"
+
 
 @attrs.define
 class Error:

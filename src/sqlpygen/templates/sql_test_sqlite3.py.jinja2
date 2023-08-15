@@ -1,0 +1,75 @@
+"""Explain {{ module }}"""
+
+import rich
+import sqlite3
+ConnectionType = sqlite3.Connection
+CursorType = sqlite3.Cursor
+
+{% macro py_type(type) %}
+{% if type.nullable %}{{ type.name }} | None{% else %}{{ type.name }}{% endif %}
+{% endmacro %}
+
+from contextlib import closing
+
+SCHEMA = {}
+{% for schema in schemas %}
+SCHEMA["{{ schema.name }}"] = """
+{{ schema.sql }}
+"""
+
+{% endfor %}
+
+QUERY = {}
+{% for query in queries %}
+QUERY["{{ query.name }}"] = """
+{{ query.sql | parameterized_query }}
+"""
+
+{% endfor %}
+
+{% macro explain_args(params) %}
+dict({% for field in params %}{{ field.name }}=None, {% endfor %})
+{% endmacro %}
+
+def sql_test(verbose: bool) -> list[tuple[str, str, str]]:
+    connection = sqlite3.connect(":memory:")
+    errors = []
+
+    {% for schema in schemas %}
+    try:
+        sql = SCHEMA["{{ schema.name }}"]
+
+        connection.execute(sql)
+        if verbose:
+            rich.print("[green]Executed schema {{ schema.name }} successfully[/green]")
+    except Exception as e:
+        if verbose:
+            rich.print("[red]Failed to execute schema {{ schema.name }}[/red]")
+        errors.append(("schema", "{{ schema.name }}", str(e)))
+
+    {% endfor %}
+
+    if errors:
+        return errors
+
+    with connection:
+        cursor = connection.cursor()
+        with closing(cursor):
+
+            {% for query in queries %}
+            try:
+                sql = QUERY["{{ query.name }}"]
+                sql = "EXPLAIN " + sql
+                query_args = {{ explain_args(query.params) }}
+
+                cursor.execute(sql, query_args)
+                if verbose:
+                    rich.print("[green]Executed query {{ query.name }} successfully[/green]")
+            except Exception as e:
+                if verbose:
+                    rich.print("[red]Failed to execute query {{ query.name }}[/red]")
+                errors.append(("query", "{{ query.name }}", str(e)))
+
+            {% endfor %}
+
+    return errors

@@ -19,9 +19,10 @@ from pygls.server import LanguageServer
 from sqlpygen.errors import Error
 
 from .tree_sitter_bindings import get_parser, Parser
-from .parse_tree import check_parse_errors
-from .ast import make_ast
 from .errors import Error, capture_errors
+from .parse_tree import check_parse_errors
+from .ast import ASTConstructionError, make_ast, make_concrete_source
+from .codegen import sql_test_sqlite3
 
 server = LanguageServer("sqlpygen-server", "v0.1")
 parser: Parser | None = None
@@ -61,7 +62,15 @@ async def did_open(
             return
 
     with capture_errors() as errors:
-        make_ast(parse_tree.root_node)
+        try:
+            source = make_ast(parse_tree.root_node)
+
+            if not errors:
+                concrete_source = make_concrete_source(source)
+                sql_test_sqlite3(concrete_source, verbose=False)
+        except ASTConstructionError:
+            pass
+
         diagnostics = [error_to_diagnostic(e) for e in errors]
         ls.publish_diagnostics(params.text_document.uri, diagnostics)
         return

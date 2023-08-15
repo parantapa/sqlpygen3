@@ -1,15 +1,22 @@
 """Code generation."""
 
 import sys
-import importlib.util
 from pathlib import Path
+import importlib.util
 
 import click
 import jinja2
 import rich
 
+from .errors import append_error, ErrorType
 from .parse_tree import get_parser
-from .ast import ParsedSQL, make_ast, make_concrete_source, ASTConstructionError
+from .ast import (
+    ParsedSQL,
+    make_ast,
+    make_concrete_source,
+    ASTConstructionError,
+    ConcreteSource,
+)
 
 
 def sqlite3_parameterized_query(sql: ParsedSQL) -> str:
@@ -17,14 +24,49 @@ def sqlite3_parameterized_query(sql: ParsedSQL) -> str:
     return sql.sql_template.format(**params)
 
 
-def run_explain_queries(fname: Path):
-    spec = importlib.util.spec_from_file_location("_generated_module", fname)
+def get_sqlite3_env() -> jinja2.Environment:
+    loader = jinja2.PackageLoader("sqlpygen")
+    env = jinja2.Environment(
+        loader=loader,
+        undefined=jinja2.StrictUndefined,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    env.filters["parameterized_query"] = sqlite3_parameterized_query
+    return env
+
+
+def sql_test_sqlite3(source: ConcreteSource, verbose: bool) -> bool:
+    env = get_sqlite3_env()
+    template = env.get_template("sql_test_sqlite3.py.jinja2")
+    gen_source = template.render(
+        module=source.module,
+        schemas=source.schemas,
+        queries=source.queries,
+        tables=source.tables,
+    )
+
+    module_name = f"_sql_test_sqlite3_{source.module}"
+    spec = importlib.util.spec_from_loader(module_name, loader=None)
     assert spec is not None
     module = importlib.util.module_from_spec(spec)
-    sys.modules["_generated_module"] = module
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    module.explain_queries()
+    exec(gen_source, module.__dict__)
+    sys.modules[module_name] = module
+
+    errors: list[tuple[str, str, str]]
+    errors = module.sql_test(verbose)
+    for sql_type, name, error_str in errors:
+        match sql_type:
+            case "schema":
+                schema = source.schemas_dict[name]
+                append_error(ErrorType.BadSQLSchema, error_str, schema.sql.node)
+            case "query":
+                query = source.queries_dict[name]
+                append_error(ErrorType.BadSQLQuery, error_str, query.sql.node)
+            case _:
+                raise ValueError(f"Unexpected SQL type: {sql_type}")
+
+    return bool(errors)
 
 
 @click.command()
@@ -45,15 +87,8 @@ def run_explain_queries(fname: Path):
     type=click.Path(exists=True, file_okay=True, dir_okay=False, path_type=Path),
 )
 def make_sqlite3_module(ofname: Path | None, filename: Path):
-    loader = jinja2.PackageLoader("sqlpygen")
-    env = jinja2.Environment(
-        loader=loader,
-        undefined=jinja2.StrictUndefined,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-    env.filters["parameterized_query"] = sqlite3_parameterized_query
-    template = env.get_template("sqlite3.jinja2")
+    env = get_sqlite3_env()
+    template = env.get_template("sqlite3.py.jinja2")
 
     file_bytes = filename.read_bytes()
 
@@ -72,6 +107,10 @@ def make_sqlite3_module(ofname: Path | None, filename: Path):
         sys.exit(1)
 
     source = make_concrete_source(source)
+    has_error = sql_test_sqlite3(source, verbose=True)
+    if has_error:
+        rich.print("[red]Failed to validate SQL statements[/red]")
+        sys.exit(1)
 
     if ofname is None:
         ofname = Path(f"{source.module}.py")
@@ -86,8 +125,5 @@ def make_sqlite3_module(ofname: Path | None, filename: Path):
             source_file=filename,
         )
     )
-
-    rich.print("[cyan]Executing explain queries[/cyan]")
-    run_explain_queries(ofname)
 
     rich.print(f"[green]Module {source.module} generated successfully.[/green]")
