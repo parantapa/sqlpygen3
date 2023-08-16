@@ -1,0 +1,51 @@
+# example1.sqlpygen
+# This is an example sqlpygen file.
+# Lines starting with # are treated as comments.
+
+# The required module statement is used to provide the name of the module.
+module example1
+
+# The required dialect statement is used to specify the dialiect of SQL
+# that is being used in the current file.
+dialect sqlite3
+
+# Schema functions are used for
+# create table and create index sql statements.
+# All SQL statements (schema and query) must end with a semicolon.
+schema table_stocks
+CREATE TABLE stocks (
+    date text,
+    trans text,
+    symbol text,
+    qty real,
+    price real
+) ;
+
+# Query functions are used for
+# insert, update, select, and delete queries.
+# Queries may have named parameters and annotated with types.
+# The names can then be used in the query.
+# Since this query doesn't specify a return type,
+# SqlPyGen assumes that this SQL statement doesn't return anything.
+# The types here are builtin Python types.
+# By marking types ! at their end, we inform SqlPyGen,
+# that the specific parameter may never by None.
+query insert_into_stocks(date: str, trans: str, symbol: str, qty: float, price: float)
+INSERT INTO stocks VALUES ($date, $trans, $symbol, $qty, $price) ;
+
+# Here we define a table that will be used as a named return type.
+# In this case SqlPyGen will generate two Python dataclasses,
+# Stock and StockRow.
+table Stock (date: str, trans: str, symbol: str, qty: float, price: float)
+
+# Here we have a query with no parameters
+# but one that returns a table.
+# The return type defines the table type that SqlPyGen will return.
+query select_from_stocks() -> Stock
+SELECT * FROM stocks ;
+
+# The following query returns an anonymous table.
+# SqlPyGen will generate still generate the relevant types,
+# but will assign arbitrary names for them.
+query count_stocks() -> (count: int)
+SELECT COUNT(*) FROM stocks ;
