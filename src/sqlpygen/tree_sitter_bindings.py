@@ -1,33 +1,30 @@
 """Python bindings for the tree-sitter-parser."""
 
+import os
 from pathlib import Path
 from tree_sitter import Language, Parser
 
 PROJECT_ROOT = Path(__file__).parents[2]
 TREE_SITTER_DIR = PROJECT_ROOT / "tree-sitter-sqlpygen"
-BUILD_DIR = PROJECT_ROOT / "build/py_lib"
-SRC_FILE = TREE_SITTER_DIR / "src/parser.c"
-LIBRARY_FILE = BUILD_DIR / "languages.so"
 
 
-def is_library_up_to_date() -> bool:
-    return LIBRARY_FILE.exists() and (
-        LIBRARY_FILE.stat().st_mtime >= SRC_FILE.stat().st_mtime
-    )
+def get_sqlpygen_state_dir() -> Path:
+    if "XDG_STATE_HOME" in os.environ:
+        state_home = os.environ["XDG_STATE_HOME"]
+    else:
+        state_home = os.environ["HOME"] + "/.local/state"
 
-
-def build_library():
-    BUILD_DIR.mkdir(parents=True, exist_ok=True)
-
-    print("Building tree-sitter library file:", str(LIBRARY_FILE))
-    Language.build_library(str(LIBRARY_FILE), [str(TREE_SITTER_DIR)])
+    state_dir = Path(state_home) / "sqlpygen"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    return state_dir
 
 
 def get_parser() -> Parser:
-    if not is_library_up_to_date():
-        build_library()
+    state_dir = get_sqlpygen_state_dir()
+    library_file = state_dir / "languages.so"
 
-    language = Language(str(LIBRARY_FILE), "sqlpygen")
+    Language.build_library(str(library_file), [str(TREE_SITTER_DIR)])
+    language = Language(str(library_file), "sqlpygen")
 
     parser = Parser()
     parser.set_language(language)

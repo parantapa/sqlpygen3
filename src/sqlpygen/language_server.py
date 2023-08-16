@@ -1,7 +1,6 @@
 """Start a language server."""
 
 import logging
-from pathlib import Path
 
 import click
 from lsprotocol.types import (
@@ -18,10 +17,10 @@ from pygls.server import LanguageServer
 
 from sqlpygen.errors import Error
 
-from .tree_sitter_bindings import get_parser, Parser
+from .tree_sitter_bindings import get_sqlpygen_state_dir, get_parser, Parser
 from .errors import Error, capture_errors
 from .parse_tree import check_parse_errors
-from .ast import ASTConstructionError, make_ast, make_concrete_source
+from .ast import make_ast, make_concrete_source
 from .codegen import sql_test_sqlite3
 
 server = LanguageServer("sqlpygen-server", "v0.1")
@@ -83,17 +82,12 @@ async def did_open(
 
 
 @click.command()
-@click.option(
-    "-l",
-    "--log-file",
-    type=click.Path(file_okay=True, dir_okay=False, path_type=Path),
-    default=Path("~/sqlpygen-server.log").expanduser(),
-    show_default=True,
-    help="Log file",
-)
-def language_server(log_file: Path):
+def language_server():
     """Start the language server."""
     global parser
+
+    state_dir = get_sqlpygen_state_dir()
+    log_file = state_dir / "language-server.log"
 
     logging.basicConfig(filename=str(log_file), filemode="a", level=logging.INFO)
 
