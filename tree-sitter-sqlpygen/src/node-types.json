@@ -16,6 +16,22 @@
     }
   },
   {
+    "type": "dialect_stmt",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "field",
     "named": true,
     "fields": {
@@ -222,6 +238,10 @@
       "required": true,
       "types": [
         {
+          "type": "dialect_stmt",
+          "named": true
+        },
+        {
           "type": "module_stmt",
           "named": true
         },
@@ -293,6 +313,10 @@
   {
     "type": "comment",
     "named": true
+  },
+  {
+    "type": "dialect",
+    "named": false
   },
   {
     "type": "identifier",

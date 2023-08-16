@@ -6,11 +6,17 @@ module.exports = grammar({
     rules: {
         source_file: $ => seq(
             $.module_stmt,
+            $.dialect_stmt,
             repeat(choice($.schema_fn, $.query_fn, $.table))
         ),
 
         module_stmt: $ => seq(
             'module',
+            field('name', $.identifier)
+        ),
+        
+        dialect_stmt: $ => seq(
+            'dialect',
             field('name', $.identifier)
         ),
 

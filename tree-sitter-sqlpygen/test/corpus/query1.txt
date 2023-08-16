@@ -3,6 +3,7 @@ Schema + Query
 ==============
 
 module example1
+dialect sqlite3
 
 schema table_stocks
 CREATE TABLE stocks (
@@ -21,6 +22,7 @@ INSERT INTO stocks VALUES ($date, $trans, $symbol, $qty, $price) ;
 
 (source_file
     (module_stmt (identifier))
+    (dialect_stmt (identifier))
     (schema_fn (identifier) (schema_sql))
     (query_fn
         (identifier)

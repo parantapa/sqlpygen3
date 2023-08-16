@@ -10,6 +10,10 @@
           "name": "module_stmt"
         },
         {
+          "type": "SYMBOL",
+          "name": "dialect_stmt"
+        },
+        {
           "type": "REPEAT",
           "content": {
             "type": "CHOICE",
@@ -37,6 +41,23 @@
         {
           "type": "STRING",
           "value": "module"
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "identifier"
+          }
+        }
+      ]
+    },
+    "dialect_stmt": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "dialect"
         },
         {
           "type": "FIELD",
