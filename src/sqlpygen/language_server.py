@@ -52,7 +52,6 @@ async def did_open(
     text_doc = ls.workspace.get_document(params.text_document.uri)
     file_bytes = text_doc.source.encode()
 
-    # In case of errors publish diagnostics
     with capture_errors() as errors:
         parse_tree = parser.parse(file_bytes)
         check_parse_errors(parse_tree.root_node)
@@ -78,6 +77,9 @@ async def did_open(
             diagnostics = [error_to_diagnostic(e) for e in errors]
             ls.publish_diagnostics(params.text_document.uri, diagnostics)
             return
+
+    # If we have no errors, remove all diagnostics
+    ls.publish_diagnostics(params.text_document.uri, [])
 
 
 @click.command()
