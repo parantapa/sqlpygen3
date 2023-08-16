@@ -51,29 +51,33 @@ async def did_open(
     # Parse the file
     text_doc = ls.workspace.get_document(params.text_document.uri)
     file_bytes = text_doc.source.encode()
-    parse_tree = parser.parse(file_bytes)
 
     # In case of errors publish diagnostics
-    if parse_tree.root_node.has_error:
-        with capture_errors() as errors:
-            check_parse_errors(parse_tree.root_node)
+    with capture_errors() as errors:
+        parse_tree = parser.parse(file_bytes)
+        check_parse_errors(parse_tree.root_node)
+        if errors:
             diagnostics = [error_to_diagnostic(e) for e in errors]
             ls.publish_diagnostics(params.text_document.uri, diagnostics)
             return
 
     with capture_errors() as errors:
-        try:
-            source = make_ast(parse_tree.root_node)
+        source = make_ast(parse_tree.root_node)
 
-            if not errors:
-                concrete_source = make_concrete_source(source)
-                sql_test_sqlite3(concrete_source, verbose=False)
-        except ASTConstructionError:
-            pass
+        if errors:
+            diagnostics = [error_to_diagnostic(e) for e in errors]
+            ls.publish_diagnostics(params.text_document.uri, diagnostics)
+            return
 
-        diagnostics = [error_to_diagnostic(e) for e in errors]
-        ls.publish_diagnostics(params.text_document.uri, diagnostics)
-        return
+    source = make_concrete_source(source)
+
+    with capture_errors() as errors:
+        sql_test_sqlite3(source, verbose=False)
+
+        if errors:
+            diagnostics = [error_to_diagnostic(e) for e in errors]
+            ls.publish_diagnostics(params.text_document.uri, diagnostics)
+            return
 
 
 @click.command()

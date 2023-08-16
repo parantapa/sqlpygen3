@@ -8,13 +8,12 @@ import click
 import jinja2
 import rich
 
-from .errors import append_error, ErrorType
-from .parse_tree import get_parser
+from .errors import ErrorType, capture_errors, append_error, print_errors
+from .parse_tree import check_parse_errors, get_parser
 from .ast import (
     ParsedSQL,
     make_ast,
     make_concrete_source,
-    ASTConstructionError,
     ConcreteSource,
 )
 
@@ -69,6 +68,13 @@ def sql_test_sqlite3(source: ConcreteSource, verbose: bool) -> bool:
     return bool(errors)
 
 
+def sql_test(source: ConcreteSource, verbose: bool) -> bool:
+    if source.dialect.text == "sqlite3":
+        return sql_test_sqlite3(source, verbose)
+
+    raise ValueError(f"Unknown dialect: {source.dialect}")
+
+
 @click.command()
 @click.option(
     "-o",
@@ -86,31 +92,37 @@ def sql_test_sqlite3(source: ConcreteSource, verbose: bool) -> bool:
     "filename",
     type=click.Path(exists=True, file_okay=True, dir_okay=False, path_type=Path),
 )
-def make_sqlite3_module(ofname: Path | None, filename: Path):
+def compile(ofname: Path | None, filename: Path):
+    """Compile a .sqlpygen file to .py file."""
     env = get_sqlite3_env()
     template = env.get_template("sqlite3.py.jinja2")
 
     file_bytes = filename.read_bytes()
 
-    rich.print(f"[cyan]Parsing input file[/cyan]: {str(filename)}")
-
     parser = get_parser()
-    parse_tree = parser.parse(file_bytes)
-    if parse_tree.root_node.has_error:
-        rich.print("[red]Failed to parse input[/red]")
-        sys.exit(1)
+    with capture_errors() as errors:
+        parse_tree = parser.parse(file_bytes)
+        check_parse_errors(parse_tree.root_node)
+        if errors:
+            rich.print("[red]Failed to parse input[/red]")
+            print_errors(errors, file_bytes, filename)
+            sys.exit(1)
 
-    try:
+    with capture_errors() as errors:
         source = make_ast(parse_tree.root_node)
-    except ASTConstructionError as e:
-        rich.print(f"[red]{e}[/red]")
-        sys.exit(1)
+        if errors:
+            rich.print("[red]Input contains errors[/red]")
+            print_errors(errors, file_bytes, filename)
+            sys.exit(1)
 
     source = make_concrete_source(source)
-    has_error = sql_test_sqlite3(source, verbose=True)
-    if has_error:
-        rich.print("[red]Failed to validate SQL statements[/red]")
-        sys.exit(1)
+
+    with capture_errors() as errors:
+        sql_test_sqlite3(source, verbose=True)
+        if errors:
+            rich.print(f"[red]SQL test failed[/red]")
+            print_errors(errors, file_bytes, filename)
+            sys.exit(1)
 
     if ofname is None:
         ofname = Path(f"{source.module}.py")
@@ -119,6 +131,7 @@ def make_sqlite3_module(ofname: Path | None, filename: Path):
     ofname.write_text(
         template.render(
             module=source.module,
+            dialect=source.dialect,
             schemas=source.schemas,
             queries=source.queries,
             tables=source.tables,

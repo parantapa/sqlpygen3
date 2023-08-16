@@ -54,7 +54,7 @@ class Type:
     def __attrs_post_init__(self):
         if self.name.text not in ["int", "float", "str", "bytes", "bool"]:
             append_error(
-                ErrorType.UnexpectedType,
+                ErrorType.UnknownType,
                 f"{self.name.text} is not one of [int, float, str, bytes, bool]",
                 self.node,
             )
@@ -161,12 +161,20 @@ class QueryFn:
 @attrs.define
 class Source:
     module: CodeStr
+    dialect: CodeStr
     schemas: list[SchemaFn]
     queries: list[QueryFn]
     tables: list[Table]
     node: Node
 
     def __attrs_post_init__(self):
+        if self.dialect.text not in ["sqlite3"]:
+            append_error(
+                ErrorType.UnknownDialect,
+                f"{self.dialect.text} is not one of [sqlite3]",
+                self.dialect.node,
+            )
+
         check_for_duplicates(
             self.schemas,
             error_type=ErrorType.DuplicateSchema,
@@ -192,12 +200,13 @@ class UnexpectedChildCount(ValueError):
 
 
 class ASTConstructionError(ValueError):
-    def __init__(self, node: Node, children: list[Any]):
+    def __init__(self, node: Node, children: list[Any], e: Exception):
         self.node = node
         self.children = children
+        self.error_str = str(e)
 
     def __str__(self):
-        return "Failed to construct AST"
+        return f"Failed to construct AST: {self.error_str}"
 
 
 def make_parsed_sql(sql: str, node: Node) -> ParsedSQL:
@@ -224,7 +233,7 @@ def make_ast(node: Node) -> Any:
     try:
         match node.type:
             case "source_file":
-                module, *rest = children
+                module, dialect, *rest = children
                 schemas, queries, tables = [], [], []
                 for c in rest:
                     match c:
@@ -237,8 +246,11 @@ def make_ast(node: Node) -> Any:
                         case _:
                             # This is for comments
                             pass
-                return Source(module, schemas, queries, tables, node)
+                return Source(module, dialect, schemas, queries, tables, node)
             case "module_stmt":
+                (name,) = children
+                return name
+            case "dialect_stmt":
                 (name,) = children
                 return name
             case "schema_fn":
@@ -281,8 +293,8 @@ def make_ast(node: Node) -> Any:
                 return CodeStr(node.text.decode(), node)
             case _:
                 return None
-    except Exception:
-        raise ASTConstructionError(node, children)
+    except Exception as e:
+        raise ASTConstructionError(node, children, e)
 
 
 @attrs.define
@@ -325,6 +337,7 @@ def make_concrete_queryfn(query: QueryFn) -> tuple[ConcreteQueryFn, Table | None
 @attrs.define
 class ConcreteSource:
     module: CodeStr
+    dialect: CodeStr
     schemas: list[SchemaFn]
     queries: list[ConcreteQueryFn]
     tables: list[Table]
@@ -350,6 +363,7 @@ def make_concrete_source(source: Source) -> ConcreteSource:
 
     return ConcreteSource(
         module=source.module,
+        dialect=source.dialect,
         schemas=source.schemas,
         queries=queries,
         tables=tables,

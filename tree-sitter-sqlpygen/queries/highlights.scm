@@ -1,8 +1,9 @@
-["module" "schema" "query" "table"] @keyword
+["module" "dialect" "schema" "query" "table"] @keyword
 
 (comment) @comment
 
 (module_stmt name: (identifier) @module)
+(dialect_stmt name: (identifier) @property)
 (schema_fn name: (identifier) @function)
 (query_fn name: (identifier) @function)
 (table name: (identifier) @type)

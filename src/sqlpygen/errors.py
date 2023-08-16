@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from typing import Generator
 
 import rich
+import rich.markup
 import attrs
 from tree_sitter import Node
 
@@ -24,7 +25,8 @@ class ErrorType(Enum):
     EmptyTable = "Empty table"
     QueryParamVarMismatch = "Query param mismatch"
 
-    UnexpectedType = "UnexpetedType"
+    UnknownType = "Unknown type"
+    UnknownDialect = "Unknown dialect"
 
     BadSQLSchema = "Bad SQL Schema"
     BadSQLQuery = "Bad SQL Query"
@@ -65,7 +67,7 @@ def print_errors(errors: list[Error], file_bytes: bytes, file_path: Path):
         etype = error.type.value
         line = error.node.start_point[0] + 1
         col = error.node.start_point[1] + 1
-        expl = error.explanation
+        expl = rich.markup.escape(error.explanation)
 
         rich.print(f"[yellow]{etype}[/yellow]: {fpath}:{line}:{col}: {expl}")
         match error.type:
