@@ -22,6 +22,7 @@ dependencies = [
     "rich",
     "attrs",
     "tree_sitter",
+    "jinja2",
     "pygls",
 ]
 
