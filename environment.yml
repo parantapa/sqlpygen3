@@ -1,9 +1,0 @@
-name: sqlpygen
-channels:
-  - conda-forge
-dependencies:
-  - python=3.11
-  - nodejs=18.16
-  - pip
-  - pip:
-    - tree-sitter
