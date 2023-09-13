@@ -82,7 +82,7 @@ async def did_open(
 
 
 @click.command()
-def language_server():
+def language_server_io():
     """Start the language server."""
     global parser
 
@@ -93,3 +93,20 @@ def language_server():
 
     parser = get_parser()
     server.start_io()
+
+
+@click.command()
+@click.option(
+    "--host", default="127.0.0.1", show_default=True, help="Hostname to bind to."
+)
+@click.option(
+    "--port", default=2087, show_default=True, type=int, help="Port to bind to."
+)
+def language_server_tcp(host: str, port: int):
+    """Start the language server."""
+    global parser
+
+    logging.basicConfig(filemode="a", level=logging.INFO)
+
+    parser = get_parser()
+    server.start_tcp(host, port)

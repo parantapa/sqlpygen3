@@ -15,6 +15,12 @@ class ErrorType(Enum):
     ParseError = "Failed to parse"
     MissingToken = "Missing token"
 
+    NoModule = "Module not specified"
+    NoDialect = "Dialect not specified"
+
+    MultipleModule = "Multiple module"
+    MultipleDialect = "Multiple dialect"
+
     DuplicateSchema = "Duplicate schema"
     DuplicateQuery = "Duplicate query"
     DuplicateTable = "Duplicate table"

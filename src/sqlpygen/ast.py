@@ -46,6 +46,18 @@ class CodeStr:
 
 
 @attrs.define
+class Module:
+    name: CodeStr
+    node: Node
+
+
+@attrs.define
+class Dialect:
+    name: CodeStr
+    node: Node
+
+
+@attrs.define
 class Type:
     name: CodeStr
     nullable: bool
@@ -160,20 +172,49 @@ class QueryFn:
 
 @attrs.define
 class Source:
-    module: CodeStr
-    dialect: CodeStr
+    modules: list[Module]
+    dialects: list[Dialect]
     schemas: list[SchemaFn]
     queries: list[QueryFn]
     tables: list[Table]
     node: Node
 
     def __attrs_post_init__(self):
-        if self.dialect.text not in ["sqlite3"]:
+        if len(self.modules) == 0:
             append_error(
-                ErrorType.UnknownDialect,
-                f"{self.dialect.text} is not one of [sqlite3]",
-                self.dialect.node,
+                ErrorType.NoModule,
+                f"No module name specified.",
+                self.node,
             )
+
+        for module in self.modules[1:]:
+            append_error(
+                ErrorType.MultipleModule,
+                f"Multiple module statements",
+                module.node,
+            )
+
+        if len(self.dialects) == 0:
+            append_error(
+                ErrorType.NoDialect,
+                f"No module name specified.",
+                self.node,
+            )
+
+        for dialect in self.dialects[1:]:
+            append_error(
+                ErrorType.MultipleDialect,
+                f"Multiple dialects statements",
+                dialect.node,
+            )
+
+        for dialect in self.dialects:
+            if dialect.name.text not in ["sqlite3"]:
+                append_error(
+                    ErrorType.UnknownDialect,
+                    f"{dialect.name.text} is not one of [sqlite3]",
+                    dialect.node,
+                )
 
         check_for_duplicates(
             self.schemas,
@@ -203,10 +244,10 @@ class ASTConstructionError(ValueError):
     def __init__(self, node: Node, children: list[Any], e: Exception):
         self.node = node
         self.children = children
-        self.error_str = str(e)
+        self.e = e
 
     def __str__(self):
-        return f"Failed to construct AST: {self.error_str}"
+        return f"Failed to construct AST: {str(self.e)}"
 
 
 def make_parsed_sql(sql: str, node: Node) -> ParsedSQL:
@@ -233,10 +274,14 @@ def make_ast(node: Node) -> Any:
     try:
         match node.type:
             case "source_file":
-                module, dialect, *rest = children
+                modules, dialects = [], []
                 schemas, queries, tables = [], [], []
-                for c in rest:
+                for c in children:
                     match c:
+                        case Module():
+                            modules.append(c)
+                        case Dialect():
+                            dialects.append(c)
                         case SchemaFn():
                             schemas.append(c)
                         case QueryFn():
@@ -246,13 +291,13 @@ def make_ast(node: Node) -> Any:
                         case _:
                             # This is for comments
                             pass
-                return Source(module, dialect, schemas, queries, tables, node)
+                return Source(modules, dialects, schemas, queries, tables, node)
             case "module_stmt":
                 (name,) = children
-                return name
+                return Module(name, node)
             case "dialect_stmt":
                 (name,) = children
-                return name
+                return Dialect(name, node)
             case "schema_fn":
                 name, sql = children
                 return SchemaFn(name, sql, node)
@@ -362,8 +407,8 @@ def make_concrete_source(source: Source) -> ConcreteSource:
     tables_dict = {t.name.text: t for t in tables}
 
     return ConcreteSource(
-        module=source.module,
-        dialect=source.dialect,
+        module=source.modules[0].name,
+        dialect=source.dialects[0].name,
         schemas=source.schemas,
         queries=queries,
         tables=tables,
