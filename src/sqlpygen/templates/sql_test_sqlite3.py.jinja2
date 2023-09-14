@@ -52,6 +52,7 @@ def sql_test(verbose: bool) -> list[tuple[str, str, str]]:
     if errors:
         return errors
 
+    {% if queries %}
     with connection:
         cursor = connection.cursor()
         with closing(cursor):
@@ -71,5 +72,6 @@ def sql_test(verbose: bool) -> list[tuple[str, str, str]]:
                 errors.append(("query", "{{ query.name }}", str(e)))
 
             {% endfor %}
+    {% endif %}
 
     return errors

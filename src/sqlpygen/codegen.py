@@ -49,7 +49,13 @@ def sql_test_sqlite3(source: ConcreteSource, verbose: bool) -> bool:
     spec = importlib.util.spec_from_loader(module_name, loader=None)
     assert spec is not None
     module = importlib.util.module_from_spec(spec)
-    exec(gen_source, module.__dict__)
+    try:
+        exec(gen_source, module.__dict__)
+    except Exception:
+        print("Failed to generate test module.")
+        if verbose:
+           print(gen_source)
+        raise
     sys.modules[module_name] = module
 
     errors: list[tuple[str, str, str]]

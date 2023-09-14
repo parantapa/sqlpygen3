@@ -3,7 +3,7 @@
 import re
 from pathlib import Path
 from collections import Counter
-from typing import Any, assert_never
+from typing import Any, Callable, assert_never
 
 import rich
 import attrs
@@ -12,17 +12,6 @@ from tree_sitter import Node
 
 from .parse_tree import get_parser, make_rich_tree
 from .errors import ErrorType, append_error
-
-
-def check_for_duplicates(items, error_type, explanation):
-    item_names = Counter(item.name for item in items)
-    for name, count in item_names.items():
-        if count > 1:
-            for item in items:
-                if item.name == name:
-                    append_error(
-                        type=error_type, explanation=explanation(item), node=item
-                    )
 
 
 @attrs.define
@@ -43,6 +32,21 @@ class CodeStr:
             return self.text == other
         else:
             raise TypeError("Invalid type for other")
+
+
+def check_for_duplicates(
+    items: list[Any],
+    error_type: ErrorType,
+    explanation: Callable[[Any], str],
+):
+    item_names = Counter(item.name for item in items)
+    for name, count in item_names.items():
+        if count > 1:
+            for item in items:
+                if item.name == name:
+                    append_error(
+                        type=error_type, explanation=explanation(item), node=item.node
+                    )
 
 
 @attrs.define
