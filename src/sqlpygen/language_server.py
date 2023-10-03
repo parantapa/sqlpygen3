@@ -1,6 +1,7 @@
 """Start a language server."""
 
 import logging
+from pathlib import Path
 
 import click
 from lsprotocol.types import (
@@ -14,10 +15,10 @@ from lsprotocol.types import (
     Position,
 )
 from pygls.server import LanguageServer
+from platformdirs import user_log_dir
 
-from sqlpygen.errors import Error
-
-from .tree_sitter_bindings import get_sqlpygen_state_dir, get_parser, Parser
+from .errors import Error
+from .tree_sitter_bindings import get_parser, Parser
 from .errors import Error, capture_errors
 from .parse_tree import check_parse_errors
 from .ast import make_ast, make_concrete_source
@@ -86,8 +87,11 @@ def language_server_io():
     """Start the language server."""
     global parser
 
-    state_dir = get_sqlpygen_state_dir()
-    log_file = state_dir / "language-server.log"
+    log_dir = user_log_dir(appname="sqlpygen-language-server")
+    log_dir = Path(log_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    log_file = log_dir / "language-server.log"
 
     logging.basicConfig(filename=str(log_file), filemode="a", level=logging.INFO)
 

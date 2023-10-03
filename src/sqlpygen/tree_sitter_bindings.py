@@ -4,30 +4,26 @@ import os
 from pathlib import Path
 from tree_sitter import Language, Parser
 
-
-def get_sqlpygen_state_dir() -> Path:
-    if "XDG_STATE_HOME" in os.environ:
-        state_home = os.environ["XDG_STATE_HOME"]
-    else:
-        state_home = os.environ["HOME"] + "/.local/state"
-
-    state_dir = Path(state_home) / "sqlpygen"
-    state_dir.mkdir(parents=True, exist_ok=True)
-    return state_dir
+from platformdirs import user_cache_dir
 
 
 def get_tree_stter_dir() -> Path:
-    if "SQLPYGEN_TREE_SITTER_DIR" not in os.environ:
+    try:
+        tree_sitter_dir = os.environ["SQLPYGEN_TREE_SITTER_DIR"]
+    except Exception as e:
         raise RuntimeError(
-            "Envornment variable SQLPYGEN_TREE_SITTER_DIR is not defined"
-        )
+            "Environment variable SQLPYGEN_TREE_SITTER_DIR not set."
+        ) from e
 
-    tree_sitter_dir = Path(os.environ["SQLPYGEN_TREE_SITTER_DIR"])
+    tree_sitter_dir = Path(tree_sitter_dir)
     return tree_sitter_dir
 
 
 def get_parser() -> Parser:
-    state_dir = get_sqlpygen_state_dir()
+    state_dir = user_cache_dir(appname="sqlpygen")
+    state_dir = Path(state_dir)
+    state_dir.mkdir(parents=True, exist_ok=True)
+
     tree_sitter_dir = get_tree_stter_dir()
     library_file = state_dir / "languages.so"
 
