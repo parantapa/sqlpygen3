@@ -11,7 +11,7 @@ CursorType = sqlite3.Cursor
 {% if type.nullable %}{{ type.name }} | None{% else %}{{ type.name }}{% endif %}
 {% endmacro %}
 
-from typing import cast, Iterable
+from typing import cast, Generator
 from contextlib import closing
 from dataclasses import dataclass
 
@@ -44,7 +44,7 @@ class {{ table.name }}:
     def __init__(self, cursor: CursorType):
         self.cursor = cursor
 
-    def __iter__(self) -> Iterable[{{ table.name }}Row]:
+    def __iter__(self) -> Generator[{{ table.name }}Row, None, None]:
         with closing(self.cursor):
             for row in self.cursor:
                 yield {{ RowType }}(*row)

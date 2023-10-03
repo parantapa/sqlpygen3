@@ -8,7 +8,7 @@ ConnectionType = sqlite3.Connection
 CursorType = sqlite3.Cursor
 
 
-from typing import cast, Iterable
+from typing import cast, Generator
 from contextlib import closing
 from dataclasses import dataclass
 
@@ -51,7 +51,7 @@ class Stock:
     def __init__(self, cursor: CursorType):
         self.cursor = cursor
 
-    def __iter__(self) -> Iterable[StockRow]:
+    def __iter__(self) -> Generator[StockRow, None, None]:
         with closing(self.cursor):
             for row in self.cursor:
                 yield StockRow(*row)
@@ -72,7 +72,7 @@ class count_stocks__ReturnType:
     def __init__(self, cursor: CursorType):
         self.cursor = cursor
 
-    def __iter__(self) -> Iterable[count_stocks__ReturnTypeRow]:
+    def __iter__(self) -> Generator[count_stocks__ReturnTypeRow, None, None]:
         with closing(self.cursor):
             for row in self.cursor:
                 yield count_stocks__ReturnTypeRow(*row)
