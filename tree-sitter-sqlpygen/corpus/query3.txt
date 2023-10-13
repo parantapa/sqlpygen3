@@ -1,0 +1,28 @@
+=============================
+Query 3: returning anon table
+=============================
+
+query select_from_stocks() -> (date: str, trans: str, symbol: str, qty: float, price: float)
+SELECT * FROM stocks ;
+
+---
+
+(source_file
+    (query_fn
+        (identifier)
+        (fields)
+        (return_
+            (anon_table
+                (fields
+                    (field (identifier) (nullable_type (identifier)))
+                    (field (identifier) (nullable_type (identifier)))
+                    (field (identifier) (nullable_type (identifier)))
+                    (field (identifier) (nullable_type (identifier)))
+                    (field (identifier) (nullable_type (identifier)))
+                )
+            )
+        )
+        (query_sql)
+    )
+)
+

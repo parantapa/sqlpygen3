@@ -1,0 +1,30 @@
+==============================
+Query 2: returning named table
+==============================
+
+table Stock (date: str, trans: str, symbol: str, qty: float, price: float)
+
+query select_from_stocks() -> Stock
+SELECT * FROM stocks ;
+
+---
+
+(source_file
+    (table
+        (identifier) 
+        (fields
+            (field (identifier) (nullable_type (identifier)))
+            (field (identifier) (nullable_type (identifier)))
+            (field (identifier) (nullable_type (identifier)))
+            (field (identifier) (nullable_type (identifier)))
+            (field (identifier) (nullable_type (identifier)))
+        )
+    )
+    (query_fn
+        (identifier)
+        (fields)
+        (return_ (named_table (identifier)))
+        (query_sql)
+    )
+)
+

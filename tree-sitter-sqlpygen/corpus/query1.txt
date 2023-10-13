@@ -1,0 +1,22 @@
+=======
+Query 1
+=======
+
+query insert_into_stocks(date: str!, trans: str!, symbol: str!, qty: float!, price: float!)
+INSERT INTO stocks VALUES ($date, $trans, $symbol, $qty, $price) ;
+
+---
+
+(source_file
+    (query_fn
+        (identifier)
+        (fields
+            (field (identifier) (non_nullable_type (identifier)))
+            (field (identifier) (non_nullable_type (identifier)))
+            (field (identifier) (non_nullable_type (identifier)))
+            (field (identifier) (non_nullable_type (identifier)))
+            (field (identifier) (non_nullable_type (identifier)))
+        )
+        (query_sql))
+)
+

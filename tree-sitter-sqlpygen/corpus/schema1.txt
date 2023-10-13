@@ -1,0 +1,20 @@
+===================
+Schema 1: Lowercase
+===================
+
+schema table_stocks
+create table stocks (
+    date text,
+    trans text,
+    symbol text,
+    qty real,
+    price real
+) ;
+
+
+---
+
+(source_file
+    (schema_fn (identifier) (schema_sql))
+)
+

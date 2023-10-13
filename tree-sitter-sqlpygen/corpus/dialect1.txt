@@ -1,0 +1,12 @@
+=========
+Dialect 1
+=========
+
+dialect sqlite3
+
+---
+
+(source_file
+    (dialect_stmt (identifier))
+)
+
