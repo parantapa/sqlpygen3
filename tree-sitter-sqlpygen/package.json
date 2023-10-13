@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/parantapa/tree-sitter-sqlpygen.git"
+    "url": "git+https://github.com/parantapa/sqlpygen3.git"
   },
   "author": "Parantapa Bhattacharya <pb@parantapa.net>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/parantapa/tree-sitter-sqlpygen/issues"
+    "url": "https://github.com/parantapa/sqlpygen3/issues"
   },
-  "homepage": "https://github.com/parantapa/tree-sitter-sqlpygen",
+  "homepage": "https://github.com/parantapa/sqlpygen3",
   "dependencies": {
     "nan": "^2.17.0"
   },

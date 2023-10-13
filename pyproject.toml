@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=60", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sqlpygen"
-version = "3.0"
+version = "3.0.0"
 authors = [
   { name="Parantapa Bhattacharya", email="pb@parantapa.net" },
 ]
